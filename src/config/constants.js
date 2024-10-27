@@ -1,5 +1,12 @@
 const constants = {
-	MISC_TEXT: {},
+	MISC_TEXT: {
+		LOG_IN: 'Iniciar sesión',
+		EMAIL_PLACEHOLDER: 'juan@gmail.com',
+		PASSWORD_PLACEHOLDER: 'Escribe tu contraseña',
+		EMAIL_LABEL: 'Correo electrónico',
+		PASSWORD_LABEL: 'Contraseña',
+		LOGIN_BUTTON_TEXT: 'Iniciar sesión',
+	},
 	PAGES: {
 		START: '/start',
 		TRANSFER: '/transfer',
