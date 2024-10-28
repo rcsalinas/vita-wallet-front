@@ -9,6 +9,7 @@ import tether from '../../../assets/icons/tether.svg';
 import getUserData from '../../../networking/profile/getUserData';
 import getTransactions from '../../../networking/transactions/getTransactions';
 import Swal from 'sweetalert2';
+import Skeleton from '@mui/material/Skeleton';
 
 const formatCurrencyForCard = (value = 0, currency) => {
 	if (currency === constants.MISC_TEXT.CLP_SHORT) {
@@ -221,6 +222,7 @@ const HistoryEntry = ({ transactionType, amount, currency }) => {
 function StartPage() {
 	const { userData, setBalances } = useAuth();
 	const [transactions, setTransactions] = React.useState([]);
+	const [loading, setLoading] = React.useState(true);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -231,12 +233,10 @@ function StartPage() {
 					expiry: userData.expiry,
 					client: userData.client,
 				};
-
 				const [userDataResponse, transactionsResponse] = await Promise.all([
 					getUserData(userHeaders),
 					getTransactions(userHeaders),
 				]);
-
 				setBalances(
 					userDataResponse?.data?.attributes?.balances?.clp || 0,
 					userDataResponse?.data?.attributes?.balances?.usdt || 0,
@@ -250,6 +250,8 @@ function StartPage() {
 					icon: 'error',
 					confirmButtonText: 'Entendido',
 				});
+			} finally {
+				setLoading(false);
 			}
 		};
 		fetchData();
@@ -276,21 +278,34 @@ function StartPage() {
 					flexWrap: 'wrap',
 				}}
 			>
-				<BalanceCard
-					coin={constants.MISC_TEXT.CHILEAN_PESO}
-					icon={chilean_peso}
-					balance={userData.balances?.clp}
-				/>
-				<BalanceCard
-					coin={constants.MISC_TEXT.BITCOIN}
-					icon={bitcoin}
-					balance={userData.balances?.btc}
-				/>
-				<BalanceCard
-					coin={constants.MISC_TEXT.USD_TETHER}
-					icon={tether}
-					balance={userData.balances?.usdt}
-				/>
+				{loading ? (
+					Array.from(new Array(3)).map((_, index) => (
+						<Skeleton
+							key={index}
+							variant="rectangular"
+							width={300}
+							height={100}
+						/>
+					))
+				) : (
+					<>
+						<BalanceCard
+							coin={constants.MISC_TEXT.CHILEAN_PESO}
+							icon={chilean_peso}
+							balance={userData.balances?.clp}
+						/>
+						<BalanceCard
+							coin={constants.MISC_TEXT.BITCOIN}
+							icon={bitcoin}
+							balance={userData.balances?.btc}
+						/>
+						<BalanceCard
+							coin={constants.MISC_TEXT.USD_TETHER}
+							icon={tether}
+							balance={userData.balances?.usdt}
+						/>
+					</>
+				)}
 			</Box>
 			<Typography
 				variant="h3"
@@ -316,14 +331,18 @@ function StartPage() {
 					maxWidth: '1020px',
 				}}
 			>
-				{transactions.map((transaction) => (
-					<HistoryEntry
-						key={transaction.id}
-						transactionType={transaction.attributes?.category}
-						amount={transaction.attributes?.amount}
-						currency={transaction.attributes?.currency}
-					/>
-				))}
+				{loading
+					? Array.from(new Array(5)).map((_, index) => (
+							<Skeleton key={index} variant="rectangular" height={60} />
+						))
+					: transactions.map((transaction) => (
+							<HistoryEntry
+								key={transaction.id}
+								transactionType={transaction.attributes?.category}
+								amount={transaction.attributes?.amount}
+								currency={transaction.attributes?.currency}
+							/>
+						))}
 			</Box>
 		</Box>
 	);
