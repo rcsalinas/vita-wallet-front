@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Box, Typography, Card, CardContent } from '@mui/material';
 import coin from '../../../assets/images/coin.png';
@@ -6,6 +6,9 @@ import constants from '../../../config/constants';
 import chilean_peso from '../../../assets/icons/chilean_peso.svg';
 import bitcoin from '../../../assets/icons/bitcoin.svg';
 import tether from '../../../assets/icons/tether.svg';
+import getUserData from '../../../networking/profile/getUserData';
+import getTransactions from '../../../networking/transactions/getTransactions';
+import Swal from 'sweetalert2';
 
 const formatCurrency = (value, currency) => {
 	if (currency === constants.MISC_TEXT.CHILEAN_PESO) {
@@ -134,6 +137,35 @@ const BalanceCard = ({ coin, icon, balance }) => {
 
 function StartPage() {
 	const { userData } = useAuth();
+
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				const userHeaders = {
+					accessToken: userData.accessToken,
+					uid: userData.uid,
+					expiry: userData.expiry,
+					client: userData.client,
+				};
+
+				const userDataResponse = await getUserData(userHeaders);
+				const transactionsResponse = await getTransactions(userHeaders);
+
+				console.log(userDataResponse);
+				console.log(transactionsResponse);
+			} catch (error) {
+				Swal.fire({
+					title: 'Error!',
+					text: error.message,
+					icon: 'error',
+					confirmButtonText: 'Entendido',
+				});
+			}
+		};
+		fetchData();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
 	return (
 		<Box
 			sx={{

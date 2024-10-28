@@ -21,6 +21,11 @@ export const AuthProvider = ({ children }) => {
 				expiry: data.headers['expiry'],
 				client: data.headers['client'],
 				name: data.data?.data?.attributes?.first_name,
+				balances: {
+					clp: data.data?.data?.attributes?.balances?.clp,
+					usdt: data.data?.data?.attributes?.balances?.usdt,
+					btc: data.data?.data?.attributes?.balances?.btc,
+				},
 			});
 			setIsAuthenticated(true);
 		} catch (error) {
@@ -32,6 +37,17 @@ export const AuthProvider = ({ children }) => {
 		setIsAuthenticated(false);
 	};
 
+	const setBalances = (clp, usdt, btc) => {
+		setUserData({
+			...userData,
+			balances: {
+				clp: clp,
+				usdt: usdt,
+				btc: btc,
+			},
+		});
+	};
+
 	return (
 		<AuthContext.Provider
 			value={{
@@ -39,6 +55,7 @@ export const AuthProvider = ({ children }) => {
 				userData: userData,
 				login,
 				logout,
+				setBalances,
 			}}
 		>
 			{children}

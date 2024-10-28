@@ -24,6 +24,7 @@ const constants = {
 		TETHER_SHORT: 'USDT',
 		BITCOIN_SHORT: 'BTC',
 		CLP_SHORT: 'CLP',
+		HISTORY: 'Historial',
 	},
 	PAGES: {
 		LOGIN: '/',
