@@ -178,6 +178,7 @@ function LoginPage() {
 						alt="Amico"
 						sx={{
 							display: { xs: 'none', sm: 'none', md: 'block' },
+							maxWidth: '100%',
 						}}
 					/>
 				</Grid>

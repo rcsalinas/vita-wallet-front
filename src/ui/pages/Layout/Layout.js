@@ -55,8 +55,7 @@ const Layout = () => {
 						'& .MuiDrawer-paper': {
 							backgroundColor: '#167287',
 							width: '20%',
-							padding: '4rem 0rem',
-							height: '100vh',
+							padding: '2% 0%',
 							backgroundImage: `url(${illustrations})`,
 							backgroundRepeat: 'no-repeat',
 							backgroundSize: 'contain',
@@ -105,8 +104,8 @@ const Layout = () => {
 					</List>
 					<Box
 						sx={{
-							left: '20%',
-							marginTop: '22rem',
+							position: 'absolute',
+							bottom: '15%',
 							cursor: 'pointer',
 							zIndex: 2,
 							marginLeft: '20%',
