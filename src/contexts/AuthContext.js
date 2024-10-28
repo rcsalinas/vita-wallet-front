@@ -1,5 +1,5 @@
 import { createContext, useState, useContext } from 'react';
-// import loginUser from '../networking/auth/loginUser';
+import loginUser from '../networking/auth/loginUser';
 
 export const AuthContext = createContext({
 	isLoggedIn: false,
@@ -14,8 +14,14 @@ export const AuthProvider = ({ children }) => {
 
 	const login = async (email, password) => {
 		try {
-			// const data = await loginUser(email, password);
-			setUserData({});
+			const data = await loginUser(email, password);
+			setUserData({
+				accessToken: data.headers['access-token'],
+				uid: data.headers['uid'],
+				expiry: data.headers['expiry'],
+				client: data.headers['client'],
+				name: data.data?.data?.attributes?.first_name,
+			});
 			setIsAuthenticated(true);
 		} catch (error) {
 			throw error;

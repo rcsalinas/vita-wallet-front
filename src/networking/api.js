@@ -7,6 +7,7 @@ axios.defaults.timeout = configuration.TIME_OUT;
 axios.defaults.headers.common = {
 	Accept: 'application/json',
 	'Content-Type': 'application/json',
+	'app-name': configuration.APP_NAME,
 };
 
 export default axios;

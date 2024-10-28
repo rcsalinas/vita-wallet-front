@@ -15,11 +15,9 @@ import illustrations from '../../../assets/images/illustrations.png';
 const Layout = () => {
 	const location = useLocation();
 	const navigate = useNavigate();
-	const { logout, isLoggedIn } = useAuth();
+	const { logout } = useAuth();
 
 	const isLoginPage = location.pathname === '/';
-
-	console.log('isLogged', isLoggedIn);
 
 	const menuItems = [
 		{
