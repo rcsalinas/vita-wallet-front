@@ -9,11 +9,13 @@ export const AuthContext = createContext({
 });
 
 export const AuthProvider = ({ children }) => {
-	const [isAuthenticated, setIsAuthenticated] = useState(false);
 	const [userData, setUserData] = useState(() => {
 		const savedUserData = localStorage.getItem('userData');
 		return savedUserData ? JSON.parse(savedUserData) : {};
 	});
+	const [isAuthenticated, setIsAuthenticated] = useState(
+		!!localStorage.getItem('userData')
+	);
 
 	useEffect(() => {
 		if (isAuthenticated) {
@@ -46,6 +48,7 @@ export const AuthProvider = ({ children }) => {
 
 	const logout = () => {
 		setIsAuthenticated(false);
+		setUserData({});
 	};
 
 	const setBalances = (clp, usdt, btc) => {
