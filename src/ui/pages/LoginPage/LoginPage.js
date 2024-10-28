@@ -13,6 +13,7 @@ import Caption1 from '../../components/Caption1/Caption1';
 import check from '../../../assets/icons/check.svg';
 import FilledButton from '../../components/FilledButton/FilledButton';
 import Swal from 'sweetalert2';
+import { useNavigate } from 'react-router-dom';
 
 const LoginSchema = Yup.object().shape({
 	email: Yup.string().email('Invalid email').required('Required'),
@@ -32,6 +33,7 @@ const StyledTextField = styled(TextField)({
 
 function LoginPage() {
 	const { login } = useAuth();
+	const navigate = useNavigate();
 
 	const [showPassword, setShowPassword] = useState(false);
 
@@ -42,6 +44,7 @@ function LoginPage() {
 	const onSubmit = async (values) => {
 		try {
 			await login(values.email, values.password);
+			navigate(constants.PAGES.START);
 		} catch (error) {
 			Swal.fire({
 				title: 'Error!',
@@ -59,12 +62,11 @@ function LoginPage() {
 				flexDirection: 'column',
 				padding: '10rem 2rem 10rem 10rem',
 				height: '100vh',
-				width: '100vw',
 			}}
 		>
 			<TitleTypography text={constants.MISC_TEXT.LOG_IN} />
 			<Grid container spacing={2}>
-				<Grid item xs={10} sm={8} md={6} lg={4}>
+				<Grid size={4}>
 					<Formik
 						initialValues={{ email: '', password: '' }}
 						validationSchema={LoginSchema}
