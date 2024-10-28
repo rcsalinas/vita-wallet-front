@@ -10,12 +10,35 @@ import getUserData from '../../../networking/profile/getUserData';
 import getTransactions from '../../../networking/transactions/getTransactions';
 import Swal from 'sweetalert2';
 
-const formatCurrency = (value, currency) => {
-	if (currency === constants.MISC_TEXT.CHILEAN_PESO) {
-		return `$${value.toFixed(6).toLocaleString('en-US')}`;
+const formatCurrencyForCard = (value = 0, currency) => {
+	if (currency === constants.MISC_TEXT.CLP_SHORT) {
+		return `$ ${value.toFixed(6).toLocaleString('en-US')}`;
 	}
 	return value.toFixed(6).toLocaleString('en-US');
 };
+
+function formatAmount(amount, currencyType) {
+	let formattedAmount;
+	currencyType = currencyType.toUpperCase();
+
+	if (
+		currencyType === 'USDT' ||
+		currencyType === 'USDC' ||
+		currencyType === 'BTC'
+	) {
+		formattedAmount = `$ ${amount.toLocaleString()} ${currencyType}`;
+	} else {
+		const formatter = new Intl.NumberFormat('en-US', {
+			style: 'currency',
+			currency: currencyType,
+			minimumFractionDigits: 0,
+		});
+		formattedAmount = formatter.format(amount);
+	}
+
+	return formattedAmount;
+}
+
 const UserGreeting = ({ name }) => {
 	return (
 		<Box
@@ -127,7 +150,7 @@ const BalanceCard = ({ coin, icon, balance }) => {
 							color: '#010E11',
 						}}
 					>
-						{formatCurrency(balance, currencyCode)}
+						{formatCurrencyForCard(balance, currencyCode)}
 					</Typography>
 				</Box>
 			</CardContent>
@@ -135,8 +158,69 @@ const BalanceCard = ({ coin, icon, balance }) => {
 	);
 };
 
+const HistoryEntry = ({ transactionType, amount, currency }) => {
+	let transactionWording;
+	let color;
+	switch (transactionType) {
+		case 'exchange':
+			transactionWording = constants.MISC_TEXT.YOU_EXCHANGED;
+			color = '#010E11';
+			break;
+		case 'deposit':
+			transactionWording = constants.MISC_TEXT.YOU_RECHARGED;
+			color = '#05BCB9';
+			break;
+		case 'transfer':
+			transactionWording = constants.MISC_TEXT.YOU_SENT;
+			color = '#CE3434';
+			break;
+		case 'recharge':
+			transactionWording = constants.MISC_TEXT.YOU_RECEIVED;
+			color = '#05BCB9';
+			break;
+		default:
+			transactionWording = constants.MISC_TEXT.UNKNOWN_TRANSACTION;
+			color = '#010E11';
+			break;
+	}
+	return (
+		<Box
+			sx={{
+				borderBottom: '1px solid #DEE0E0',
+				flexDirection: 'row',
+				display: 'flex',
+				justifyContent: 'space-between',
+				paddingBottom: '2rem',
+			}}
+		>
+			<Typography
+				sx={{
+					fontFamily: 'Open Sans',
+					fontWeight: 400,
+					fontSize: '16px',
+					lineHeight: '21.79px',
+				}}
+			>
+				{transactionWording}
+			</Typography>
+			<Typography
+				sx={{
+					fontFamily: 'Open Sans',
+					fontWeight: 600,
+					fontSize: '16px',
+					lineHeight: '21.79px',
+				}}
+				color={color}
+			>
+				{formatAmount(amount, currency)}
+			</Typography>
+		</Box>
+	);
+};
+
 function StartPage() {
-	const { userData } = useAuth();
+	const { userData, setBalances } = useAuth();
+	const [transactions, setTransactions] = React.useState([]);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -149,10 +233,14 @@ function StartPage() {
 				};
 
 				const userDataResponse = await getUserData(userHeaders);
-				const transactionsResponse = await getTransactions(userHeaders);
+				const transactionsResponse = await getTransactions(userHeaders); //category: "exchange (intercambiaste)", "deposit (recibiste)", "transfer (transferiste), recharge (recargaste)"
 
-				console.log(userDataResponse);
-				console.log(transactionsResponse);
+				setBalances(
+					userDataResponse?.data?.attributes?.balances?.clp || 0,
+					userDataResponse?.data?.attributes?.balances?.usdt || 0,
+					userDataResponse?.data?.attributes?.balances?.btc || 0
+				);
+				setTransactions(transactionsResponse?.data);
 			} catch (error) {
 				Swal.fire({
 					title: 'Error!',
@@ -172,7 +260,7 @@ function StartPage() {
 				display: 'flex',
 				flexDirection: 'column',
 				height: '100vh',
-				padding: '5rem 2rem 10rem 3rem',
+				padding: '5rem 0 0 3rem',
 			}}
 		>
 			<UserGreeting name={userData.name} />
@@ -183,23 +271,57 @@ function StartPage() {
 					flexDirection: 'row',
 					marginTop: '2rem',
 					gap: '2rem',
+					flexWrap: 'wrap',
 				}}
 			>
 				<BalanceCard
 					coin={constants.MISC_TEXT.CHILEAN_PESO}
 					icon={chilean_peso}
-					balance={1000000}
+					balance={userData.balances?.clp}
 				/>
 				<BalanceCard
 					coin={constants.MISC_TEXT.BITCOIN}
 					icon={bitcoin}
-					balance={1000000}
+					balance={userData.balances?.btc}
 				/>
 				<BalanceCard
 					coin={constants.MISC_TEXT.USD_TETHER}
 					icon={tether}
-					balance={1.574e-5}
+					balance={userData.balances?.usdt}
 				/>
+			</Box>
+			<Typography
+				variant="h3"
+				sx={{
+					marginTop: '4rem',
+					fontFamily: 'Open Sans',
+					fontWeight: 400,
+					fontSize: '24px',
+					lineHeight: '32.68px',
+				}}
+			>
+				{constants.MISC_TEXT.HISTORY}
+			</Typography>
+			<Box
+				sx={{
+					display: 'flex',
+					flexDirection: 'column',
+					gap: '1rem',
+					marginTop: '2rem',
+					overflowY: 'auto',
+					height: '60%',
+					paddingRight: '1rem',
+					maxWidth: '1020px',
+				}}
+			>
+				{transactions.map((transaction) => (
+					<HistoryEntry
+						key={transaction.id}
+						transactionType={transaction.attributes?.category}
+						amount={transaction.attributes?.amount}
+						currency={transaction.attributes?.currency}
+					/>
+				))}
 			</Box>
 		</Box>
 	);

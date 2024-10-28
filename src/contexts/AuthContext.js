@@ -1,4 +1,4 @@
-import { createContext, useState, useContext } from 'react';
+import { createContext, useState, useContext, useEffect } from 'react';
 import loginUser from '../networking/auth/loginUser';
 
 export const AuthContext = createContext({
@@ -10,7 +10,18 @@ export const AuthContext = createContext({
 
 export const AuthProvider = ({ children }) => {
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
-	const [userData, setUserData] = useState({});
+	const [userData, setUserData] = useState(() => {
+		const savedUserData = localStorage.getItem('userData');
+		return savedUserData ? JSON.parse(savedUserData) : {};
+	});
+
+	useEffect(() => {
+		if (isAuthenticated) {
+			localStorage.setItem('userData', JSON.stringify(userData));
+		} else {
+			localStorage.removeItem('userData');
+		}
+	}, [userData, isAuthenticated]);
 
 	const login = async (email, password) => {
 		try {

@@ -18,9 +18,11 @@ const constants = {
 		CHILEAN_PESO: 'Peso Chileno',
 		USD_TETHER: 'Tether',
 		BITCOIN: 'Bitcoin',
-		YOU_RECEIVED: 'Recibiste',
-		YOU_SENT: 'Transferiste',
-		YOU_RECHARGED: 'Recargaste',
+		YOU_RECEIVED: 'Recibiste', // sent
+		YOU_SENT: 'Transferiste', // transfer
+		YOU_RECHARGED: 'Recargaste', // deposit
+		YOU_EXCHANGED: 'Intercambiaste', // exchange
+		UNKNOWN_TRANSACTION: 'Transacción desconocida',
 		TETHER_SHORT: 'USDT',
 		BITCOIN_SHORT: 'BTC',
 		CLP_SHORT: 'CLP',
