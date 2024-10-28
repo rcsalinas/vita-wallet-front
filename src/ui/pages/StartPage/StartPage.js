@@ -232,8 +232,10 @@ function StartPage() {
 					client: userData.client,
 				};
 
-				const userDataResponse = await getUserData(userHeaders);
-				const transactionsResponse = await getTransactions(userHeaders); //category: "exchange (intercambiaste)", "deposit (recibiste)", "transfer (transferiste), recharge (recargaste)"
+				const [userDataResponse, transactionsResponse] = await Promise.all([
+					getUserData(userHeaders),
+					getTransactions(userHeaders),
+				]);
 
 				setBalances(
 					userDataResponse?.data?.attributes?.balances?.clp || 0,
