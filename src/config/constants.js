@@ -27,6 +27,13 @@ const constants = {
 		BITCOIN_SHORT: 'BTC',
 		CLP_SHORT: 'CLP',
 		HISTORY: 'Historial',
+		CONTINUE: 'Continuar',
+		BACK: 'Atrás',
+		TRANSACTION_PAGE_TITLE: '¿Qué deseas intercambiar?',
+		BALANCE_AVAILABLE: 'Saldo disponible',
+		EXCHANGE: 'Intercambiar',
+		AMOUNT_TO_EXCHANGE: 'Monto a intercambiar',
+		I_WANT_TO_RECEIVE: 'Quiero recibir',
 	},
 	PAGES: {
 		LOGIN: '/',
