@@ -11,15 +11,20 @@ import {
 	InputAdornment,
 	styled,
 	Select,
+	IconButton,
 } from '@mui/material';
 import bitcoin from '../../../assets/icons/bitcoin.svg';
 import tether from '../../../assets/icons/tether.svg';
 import chilean_peso from '../../../assets/icons/chilean_peso.svg';
 import dollar_sign from '../../../assets/icons/dollar_sign.svg';
+import back_arrow from '../../../assets/icons/back_arrow.svg';
+import amico_modal from '../../../assets/images/amico_modal.png';
 import constants from '../../../config/constants';
 import { useAuth } from '../../../contexts/AuthContext';
 import getCryptoPrices from '../../../networking/prices/getCryptoPrices';
+// import exchange from '../../../networking/exchange/exchange';
 import Swal from 'sweetalert2';
+import CloseIcon from '@mui/icons-material/Close';
 
 const currencyOptionsTo = [
 	{ code: 'USDT', icon: tether },
@@ -56,6 +61,77 @@ const StyledDropdown = styled(Select)({
 		marginTop: '9px',
 	},
 });
+
+const SuccesModal = ({ currencyReceived, onClose }) => {
+	return (
+		<Box
+			sx={{
+				display: 'flex',
+				flexDirection: 'column',
+				alignItems: 'center',
+				justifyContent: 'center',
+				width: '100%',
+				height: '100%',
+				backgroundColor: 'rgba(0, 0, 0, 0.4)',
+				position: 'absolute',
+				top: 0,
+				left: 0,
+			}}
+		>
+			<Box
+				sx={{
+					display: 'flex',
+					flexDirection: 'column',
+					alignItems: 'center',
+					justifyContent: 'center',
+					backgroundColor: 'white',
+					borderRadius: '6px',
+					padding: '4rem',
+					width: '25%',
+					position: 'relative',
+				}}
+			>
+				<IconButton
+					sx={{
+						position: 'absolute',
+						top: '1rem',
+						right: '1rem',
+					}}
+					onClick={onClose}
+				>
+					<CloseIcon />
+				</IconButton>
+				<img src={amico_modal} alt="amico modal" />
+				<Typography
+					sx={{
+						fontFamily: 'Open Sans',
+						fontSize: '28px',
+						fontWeight: 600,
+						lineHeight: '38.13px',
+						marginTop: '2rem',
+						color: '#167287',
+					}}
+				>
+					{constants.MISC_TEXT.SUCCESFULL_TRANSACTION}
+				</Typography>
+				<Typography
+					sx={{
+						fontFamily: 'Open Sans',
+						fontSize: '16px',
+						fontWeight: 400,
+						lineHeight: '21.79px',
+						marginTop: '2rem',
+					}}
+				>
+					{constants.MISC_TEXT.SUCCESS_MODAL_TEXT.replace(
+						'%currency%',
+						currencyReceived
+					)}
+				</Typography>
+			</Box>
+		</Box>
+	);
+};
 
 function ContinueButton({ type, text, disabled = false, onClick }) {
 	return (
@@ -109,51 +185,60 @@ const exchangeRateUsdToClp = 946.94;
 
 function ExchangePage() {
 	const [step, setStep] = useState(1);
-	const [formData, setFormData] = useState(null);
 	const [prices, setPrices] = useState(null);
+	const [exchangeRate, setExchangeRate] = useState(null);
+	const [modalOpen, setModalOpen] = useState(false);
 	const { userData } = useAuth();
 
-	const handleAccept = () => {
-		console.log('Accepted transaction:', formData);
+	const handleAccept = async (fromCurrency, toCurrency, amount) => {
+		fromCurrency = fromCurrency.toLowerCase();
+		toCurrency = toCurrency.toLowerCase();
+		try {
+			/*const userHeaders = {
+				accessToken: userData.accessToken,
+				uid: userData.uid,
+				expiry: userData.expiry,
+				client: userData.client,
+			};
+			await exchange(userHeaders, fromCurrency, toCurrency, amount);*/
+			setModalOpen(true);
+		} catch (error) {
+			Swal.fire({
+				title: 'Error!',
+				text: error.message,
+				icon: 'error',
+				confirmButtonText: 'Entendido',
+			});
+		}
+	};
+
+	const getPrices = async () => {
+		try {
+			const userHeaders = {
+				accessToken: userData.accessToken,
+				uid: userData.uid,
+				expiry: userData.expiry,
+				client: userData.client,
+			};
+			const prices = await getCryptoPrices(userHeaders);
+			setPrices(prices);
+		} catch (error) {
+			Swal.fire({
+				title: 'Error!',
+				text: error.message,
+				icon: 'error',
+				confirmButtonText: 'Entendido',
+			});
+		}
 	};
 
 	useEffect(() => {
-		const getPrices = async () => {
-			try {
-				const userHeaders = {
-					accessToken: userData.accessToken,
-					uid: userData.uid,
-					expiry: userData.expiry,
-					client: userData.client,
-				};
-				const prices = await getCryptoPrices(userHeaders);
-				setPrices(prices);
-			} catch (error) {
-				Swal.fire({
-					title: 'Error!',
-					text: error.message,
-					icon: 'error',
-					confirmButtonText: 'Entendido',
-				});
-			}
-		};
-		const checkPricesValidity = () => {
-			if (prices) {
-				const currentTime = new Date();
-				const validUntil = new Date(prices.valid_until);
-				if (currentTime > validUntil) {
-					getPrices();
-				}
-			}
-		};
-
 		getPrices();
-		const intervalId = setInterval(checkPricesValidity, 5 * 60 * 1000); // Check every 5 minutes
+		const intervalId = setInterval(getPrices, 2 * 60 * 1000);
 
 		return () => clearInterval(intervalId);
-
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [prices]);
+	}, []);
 
 	const handleAmountFromBlur = (e, setFieldValue, values) => {
 		const amountFrom = e.target.value;
@@ -170,8 +255,9 @@ function ExchangePage() {
 	const handleCurrencyChange = (e, setFieldValue, values) => {
 		const toCurrency = e.target.value;
 		const amountFrom = values.fromAmount;
+		const conversionRate = prices?.prices?.usd[toCurrency.toLowerCase()] || 1;
+		setExchangeRate(conversionRate);
 		if (amountFrom) {
-			const conversionRate = prices?.prices?.usd[toCurrency.toLowerCase()] || 1;
 			const amountTo = (amountFrom / exchangeRateUsdToClp) * conversionRate;
 
 			setFieldValue('toCurrency', toCurrency);
@@ -182,235 +268,390 @@ function ExchangePage() {
 	};
 
 	return (
-		<Formik
-			initialValues={{
-				fromCurrency: 'CLP',
-				fromAmount: '',
-				toCurrency: '',
-				toAmount: '',
-			}}
-			validationSchema={StepOneSchema}
-			onSubmit={(values) => {
-				setFormData(values);
-				setStep(2);
-			}}
-		>
-			{({
-				values,
-				errors,
-				touched,
-				handleSubmit,
-				handleChange,
-				setFieldValue,
-				isValid,
-			}) => (
-				<Form onSubmit={handleSubmit}>
-					{step === 1 ? (
-						<Box
-							sx={{
-								display: 'flex',
-								flexDirection: 'column',
-								padding: '8% 10% 10% 10%',
-							}}
-						>
-							<Typography
-								sx={{
-									fontFamily: 'Open Sans',
-									fontSize: '28px',
-									fontWeight: 600,
-									lineHeight: '38.13px',
+		<>
+			<Formik
+				initialValues={{
+					fromCurrency: 'CLP',
+					fromAmount: '',
+					toCurrency: '',
+					toAmount: '',
+				}}
+				validationSchema={StepOneSchema}
+				onSubmit={(values) => {
+					setStep(2);
+				}}
+				validateOnChange={true}
+				validateOnBlur={true}
+			>
+				{({
+					values,
+					errors,
+					touched,
+					handleSubmit,
+					handleChange,
+					setFieldValue,
+					isValid,
+				}) => (
+					<Form onSubmit={handleSubmit}>
+						{modalOpen && (
+							<SuccesModal
+								currencyReceived={values.toCurrency}
+								onClose={() => {
+									setModalOpen(false);
+									window.location.reload();
 								}}
-							>
-								{constants.MISC_TEXT.TRANSACTION_PAGE_TITLE}
-							</Typography>
-							<Typography
-								sx={{
-									fontFamily: 'Open Sans',
-									fontSize: '16px',
-									fontWeight: 600,
-									lineHeight: '21.79px',
-									color: '#05BCB9',
-									marginTop: '2rem',
-								}}
-							>
-								{constants.MISC_TEXT.BALANCE_AVAILABLE}: ${' '}
-								{userData.balances?.clp} CLP
-							</Typography>
-							<Typography
-								sx={{
-									fontFamily: 'Open Sans',
-									fontSize: '16px',
-									fontWeight: 400,
-									lineHeight: '21.79px',
-									marginTop: '3rem',
-								}}
-							>
-								{constants.MISC_TEXT.AMOUNT_TO_EXCHANGE}
-							</Typography>
+							/>
+						)}
+						{step === 1 ? (
 							<Box
 								sx={{
 									display: 'flex',
-									flexDirection: 'row',
-									gap: '16px',
-									alignItems: 'center',
+									flexDirection: 'column',
+									padding: '8% 10% 10% 10%',
 								}}
 							>
-								<Field
-									as={StyledDropdown}
-									name="fromCurrency"
-									error={touched.fromCurrency && Boolean(errors.fromCurrency)}
-									helperText={touched.fromAmount && errors.fromAmount}
+								<Typography
 									sx={{
-										width: '80px',
-										height: '57px',
+										fontFamily: 'Open Sans',
+										fontSize: '28px',
+										fontWeight: 600,
+										lineHeight: '38.13px',
 									}}
 								>
-									{currencyOptionsFrom.map((option) => (
-										<MenuItem key={option.code} value={option.code}>
-											<img src={option.icon} alt={option.code} />
-										</MenuItem>
-									))}
-								</Field>
-
-								<Field
-									name="fromAmount"
-									as={StyledTextField}
-									type="number"
-									fullWidth
-									margin="normal"
-									error={touched.fromAmount && Boolean(errors.fromAmount)}
-									helperText={touched.fromAmount && errors.fromAmount}
+									{constants.MISC_TEXT.TRANSACTION_PAGE_TITLE}
+								</Typography>
+								<Typography
 									sx={{
-										width: '387px',
-										height: '56px',
+										fontFamily: 'Open Sans',
+										fontSize: '16px',
+										fontWeight: 600,
+										lineHeight: '21.79px',
+										color: '#05BCB9',
+										marginTop: '2rem',
 									}}
-									InputProps={{
-										startAdornment: (
-											<InputAdornment position="start">
-												<img
-													src={dollar_sign}
-													alt="dollar icon"
-													width={24}
-													height={24}
-													sx={{ backgroundColor: 'white' }}
-												/>
-											</InputAdornment>
-										),
-									}}
-									onBlur={(e) => handleAmountFromBlur(e, setFieldValue, values)}
-								/>
-							</Box>
-							<Typography
-								sx={{
-									fontFamily: 'Open Sans',
-									fontSize: '16px',
-									fontWeight: 400,
-									lineHeight: '21.79px',
-									marginTop: '3rem',
-								}}
-							>
-								{constants.MISC_TEXT.I_WANT_TO_RECEIVE}
-							</Typography>
-							<Box
-								sx={{
-									display: 'flex',
-									flexDirection: 'row',
-									gap: '16px',
-									alignItems: 'center',
-								}}
-							>
-								<Field
-									name="toCurrency"
-									as={StyledDropdown}
-									error={touched.toCurrency && Boolean(errors.toCurrency)}
-									helperText={touched.toCurrency && errors.toCurrency}
-									sx={{
-										width: '80px',
-										height: '57px',
-									}}
-									onChange={(e) =>
-										handleCurrencyChange(e, setFieldValue, values)
-									}
 								>
-									{currencyOptionsTo.map((option) => (
-										<MenuItem key={option.code} value={option.code}>
-											<img src={option.icon} alt={option.code} />
-										</MenuItem>
-									))}
-								</Field>
-
-								<Field
-									name="toAmount"
-									as={StyledTextField}
-									type="number"
-									fullWidth
-									margin="normal"
-									error={touched.toAmount && Boolean(errors.toAmount)}
-									helperText={touched.toAmount && errors.toAmount}
+									{constants.MISC_TEXT.BALANCE_AVAILABLE}: ${' '}
+									{userData.balances?.clp} CLP
+								</Typography>
+								<Typography
 									sx={{
-										width: '387px',
-										height: '56px',
+										fontFamily: 'Open Sans',
+										fontSize: '16px',
+										fontWeight: 400,
+										lineHeight: '21.79px',
+										marginTop: '3rem',
 									}}
-									InputProps={{
-										readOnly: true,
+								>
+									{constants.MISC_TEXT.AMOUNT_TO_EXCHANGE}
+								</Typography>
+								<Box
+									sx={{
+										display: 'flex',
+										flexDirection: 'row',
+										gap: '16px',
+										alignItems: 'center',
 									}}
-								/>
+								>
+									<Field
+										as={StyledDropdown}
+										name="fromCurrency"
+										error={touched.fromCurrency && Boolean(errors.fromCurrency)}
+										helperText={touched.fromAmount && errors.fromAmount}
+										sx={{
+											width: '80px',
+											height: '57px',
+										}}
+									>
+										{currencyOptionsFrom.map((option) => (
+											<MenuItem key={option.code} value={option.code}>
+												<img src={option.icon} alt={option.code} />
+											</MenuItem>
+										))}
+									</Field>
+
+									<Field
+										name="fromAmount"
+										as={StyledTextField}
+										type="number"
+										fullWidth
+										margin="normal"
+										error={touched.fromAmount && Boolean(errors.fromAmount)}
+										helperText={touched.fromAmount && errors.fromAmount}
+										sx={{
+											width: '387px',
+											height: '56px',
+										}}
+										InputProps={{
+											startAdornment: (
+												<InputAdornment position="start">
+													<img
+														src={dollar_sign}
+														alt="dollar icon"
+														width={24}
+														height={24}
+														sx={{ backgroundColor: 'white' }}
+													/>
+												</InputAdornment>
+											),
+										}}
+										onBlur={(e) =>
+											handleAmountFromBlur(e, setFieldValue, values)
+										}
+									/>
+								</Box>
+								<Typography
+									sx={{
+										fontFamily: 'Open Sans',
+										fontSize: '16px',
+										fontWeight: 400,
+										lineHeight: '21.79px',
+										marginTop: '3rem',
+									}}
+								>
+									{constants.MISC_TEXT.I_WANT_TO_RECEIVE}
+								</Typography>
+								<Box
+									sx={{
+										display: 'flex',
+										flexDirection: 'row',
+										gap: '16px',
+										alignItems: 'center',
+									}}
+								>
+									<Field
+										name="toCurrency"
+										as={StyledDropdown}
+										error={touched.toCurrency && Boolean(errors.toCurrency)}
+										helperText={touched.toCurrency && errors.toCurrency}
+										sx={{
+											width: '80px',
+											height: '57px',
+										}}
+										onChange={(e) =>
+											handleCurrencyChange(e, setFieldValue, values)
+										}
+									>
+										{currencyOptionsTo.map((option) => (
+											<MenuItem key={option.code} value={option.code}>
+												<img src={option.icon} alt={option.code} />
+											</MenuItem>
+										))}
+									</Field>
+
+									<Field
+										name="toAmount"
+										as={StyledTextField}
+										type="number"
+										fullWidth
+										margin="normal"
+										error={touched.toAmount && Boolean(errors.toAmount)}
+										helperText={touched.toAmount && errors.toAmount}
+										sx={{
+											width: '387px',
+											height: '56px',
+										}}
+										InputProps={{
+											readOnly: true,
+										}}
+									/>
+								</Box>
+								<Box
+									sx={{
+										display: 'flex',
+										flexDirection: 'row',
+										gap: '16px',
+										position: 'absolute',
+										bottom: '8%',
+									}}
+								>
+									<BackButton
+										onClick={() => setStep(1)}
+										disabled={step === 1}
+										text={constants.MISC_TEXT.BACK}
+									/>
+
+									<ContinueButton
+										type="submit"
+										variant="contained"
+										color="primary"
+										disabled={!values.toAmount}
+										text={constants.MISC_TEXT.CONTINUE}
+									/>
+								</Box>
 							</Box>
+						) : (
 							<Box
 								sx={{
 									display: 'flex',
 									flexDirection: 'row',
-									gap: '16px',
-									position: 'absolute',
-									bottom: '8%',
+									padding: '8% 10% 10% 8%',
+									gap: '2rem',
 								}}
 							>
-								<BackButton
-									onClick={() => setStep(1)}
-									disabled={step === 1}
-									text={constants.MISC_TEXT.BACK}
-								/>
+								<Box
+									onClick={() => {
+										window.location.reload();
+									}}
+								>
+									<img src={back_arrow} alt="back arrow" />
+								</Box>
+								<Box
+									sx={{
+										display: 'flex',
+										flexDirection: 'column',
+										gap: '2rem',
+									}}
+								>
+									<Typography
+										sx={{
+											fontFamily: 'Open Sans',
+											fontSize: '28px',
+											fontWeight: 600,
+											lineHeight: '38.13px',
+											marginBottom: '4rem',
+										}}
+									>
+										{constants.MISC_TEXT.TRANSACTION_SUMMARY}
+									</Typography>
+									<Card
+										variant="outlined"
+										style={{
+											padding: '1rem 2rem',
+											marginBottom: '16px',
+											width: '488px',
+											backgroundColor: '#F9F9F9',
+											borderRadius: '6px',
+											display: 'flex',
+											flexDirection: 'column',
+											gap: '1rem',
+										}}
+									>
+										<Box
+											sx={{
+												display: 'flex',
+												flexDirection: 'row',
 
-								<ContinueButton
-									type="submit"
-									variant="contained"
-									color="primary"
-									disabled={!isValid}
-									text={constants.MISC_TEXT.CONTINUE}
-								/>
+												justifyContent: 'space-between',
+											}}
+										>
+											<Typography
+												sx={{
+													fontFamily: 'Open Sans',
+													fontSize: '14px',
+													fontWeight: 400,
+													lineHeight: '19.07px',
+												}}
+											>
+												{constants.MISC_TEXT.AMOUNT_TO_EXCHANGE}
+											</Typography>
+											<Typography
+												sx={{
+													fontFamily: 'Open Sans',
+													fontSize: '16px',
+													fontWeight: 600,
+													lineHeight: '21.79px',
+												}}
+											>
+												$ {values.fromAmount} {values.fromCurrency}
+											</Typography>
+										</Box>
+										<Box
+											sx={{
+												display: 'flex',
+												flexDirection: 'row',
+												justifyContent: 'space-between',
+											}}
+										>
+											<Typography
+												sx={{
+													fontFamily: 'Open Sans',
+													fontSize: '14px',
+													fontWeight: 400,
+													lineHeight: '19.07px',
+												}}
+											>
+												{constants.MISC_TEXT.EXCHANGE_RATE}
+											</Typography>
+											<Typography
+												sx={{
+													fontFamily: 'Open Sans',
+													fontSize: '16px',
+													fontWeight: 600,
+													lineHeight: '21.79px',
+												}}
+											>
+												1 {values.toCurrency} ={' '}
+												{(exchangeRate * exchangeRateUsdToClp).toLocaleString(
+													'es-CL',
+													{ style: 'currency', currency: 'CLP' }
+												)}
+												{' ' + values.fromCurrency}
+											</Typography>
+										</Box>
+										<Box
+											sx={{
+												display: 'flex',
+												flexDirection: 'row',
+												justifyContent: 'space-between',
+											}}
+										>
+											<Typography
+												sx={{
+													fontFamily: 'Open Sans',
+													fontSize: '14px',
+													fontWeight: 400,
+													lineHeight: '19.07px',
+												}}
+											>
+												{constants.MISC_TEXT.TOTAL_TO_RECEIVE}
+											</Typography>
+											<Typography
+												sx={{
+													fontFamily: 'Open Sans',
+													fontSize: '16px',
+													fontWeight: 600,
+													lineHeight: '21.79px',
+													color: '#167287',
+												}}
+											>
+												{values.toAmount} {values.toCurrency}
+											</Typography>
+										</Box>
+									</Card>
+									<Box
+										sx={{
+											display: 'flex',
+											flexDirection: 'row',
+											gap: '8rem',
+											position: 'absolute',
+											bottom: '8%',
+										}}
+									>
+										<BackButton
+											onClick={() => setStep(1)}
+											disabled={step === 1}
+											text={constants.MISC_TEXT.BACK}
+										/>
+										<ContinueButton
+											variant="contained"
+											color="primary"
+											onClick={() =>
+												handleAccept(
+													values.fromCurrency,
+													values.toCurrency,
+													values.fromAmount
+												)
+											}
+											text={constants.MISC_TEXT.EXCHANGE}
+										/>
+									</Box>
+								</Box>
 							</Box>
-						</Box>
-					) : (
-						<>
-							<Card
-								variant="outlined"
-								style={{ padding: '16px', marginBottom: '16px' }}
-							>
-								<Typography variant="h6">Transaction Summary</Typography>
-								<Typography>
-									From: {values.fromAmount} {values.fromCurrency}
-								</Typography>
-								<Typography>
-									To: {values.toAmount} {values.toCurrency}
-								</Typography>
-							</Card>
-
-							<BackButton
-								onClick={() => setStep(1)}
-								disabled={step === 1}
-								text={constants.MISC_TEXT.BACK}
-							/>
-							<ContinueButton
-								variant="contained"
-								color="primary"
-								onClick={handleAccept}
-								text={constants.MISC_TEXT.EXCHANGE}
-							/>
-						</>
-					)}
-				</Form>
-			)}
-		</Formik>
+						)}
+					</Form>
+				)}
+			</Formik>
+		</>
 	);
 }
 

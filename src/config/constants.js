@@ -34,6 +34,11 @@ const constants = {
 		EXCHANGE: 'Intercambiar',
 		AMOUNT_TO_EXCHANGE: 'Monto a intercambiar',
 		I_WANT_TO_RECEIVE: 'Quiero recibir',
+		TRANSACTION_SUMMARY: 'Resumen de la transacción',
+		TOTAL_TO_RECEIVE: 'Total a recibir',
+		EXCHANGE_RATE: 'Tasa de cambio',
+		SUCCESFULL_TRANSACTION: '¡Intercambio exitoso!',
+		SUCCESS_MODAL_TEXT: 'Ya cuentas con los %currency% en tu cuenta',
 	},
 	PAGES: {
 		LOGIN: '/',
